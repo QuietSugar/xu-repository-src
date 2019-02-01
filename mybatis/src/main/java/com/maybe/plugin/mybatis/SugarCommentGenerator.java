@@ -1,15 +1,17 @@
 package com.maybe.plugin.mybatis;
 
-/**
- * Maybe has infinite possibilities
- *
- * @author Created by sugar on 2018/7/3
- */
 
 import org.mybatis.generator.api.CommentGenerator;
 import org.mybatis.generator.api.IntrospectedColumn;
 import org.mybatis.generator.api.IntrospectedTable;
-import org.mybatis.generator.api.dom.java.*;
+import org.mybatis.generator.api.dom.java.CompilationUnit;
+import org.mybatis.generator.api.dom.java.Field;
+import org.mybatis.generator.api.dom.java.InnerClass;
+import org.mybatis.generator.api.dom.java.InnerEnum;
+import org.mybatis.generator.api.dom.java.JavaElement;
+import org.mybatis.generator.api.dom.java.Method;
+import org.mybatis.generator.api.dom.java.Parameter;
+import org.mybatis.generator.api.dom.java.TopLevelClass;
 import org.mybatis.generator.api.dom.xml.XmlElement;
 import org.mybatis.generator.config.MergeConstants;
 import org.mybatis.generator.config.PropertyRegistry;
@@ -20,6 +22,13 @@ import java.util.Properties;
 
 import static org.mybatis.generator.internal.util.StringUtility.isTrue;
 
+/**
+ * Maybe has infinite possibilities
+ *
+ * 直接实现接口的自定义生成器
+ *
+ * @author Created by sugar on 2018/7/3
+ */
 public class SugarCommentGenerator implements CommentGenerator {
     private Properties properties;
     private Properties systemPro;
@@ -132,9 +141,15 @@ public class SugarCommentGenerator implements CommentGenerator {
         innerEnum.addJavaDocLine(" */");
     }
 
+    /**
+     * 字段注释
+     *
+     * @param field              字段
+     * @param introspectedTable  表信息
+     * @param introspectedColumn 列（字段信息）
+     */
     @Override
-    public void addFieldComment(Field field, IntrospectedTable introspectedTable,
-                                IntrospectedColumn introspectedColumn) {
+    public void addFieldComment(Field field, IntrospectedTable introspectedTable, IntrospectedColumn introspectedColumn) {
         if (suppressAllComments) {
             return;
         }
@@ -151,11 +166,8 @@ public class SugarCommentGenerator implements CommentGenerator {
         if (suppressAllComments) {
             return;
         }
-        StringBuilder sb = new StringBuilder();
         field.addJavaDocLine("/**");
-        sb.append(" * ");
-        sb.append(introspectedTable.getFullyQualifiedTable());
-        field.addJavaDocLine(sb.toString().replace("\n", " "));
+        field.addJavaDocLine(" * 该方法需要重写");
         field.addJavaDocLine(" */");
     }
 
