@@ -34,7 +34,6 @@ public class SugarCommentGenerator implements CommentGenerator {
     private Properties systemPro;
     private boolean suppressDate;
     private boolean suppressAllComments;
-    private String currentDateStr;
 
     public SugarCommentGenerator() {
         super();
@@ -42,7 +41,6 @@ public class SugarCommentGenerator implements CommentGenerator {
         systemPro = System.getProperties();
         suppressDate = false;
         suppressAllComments = false;
-        currentDateStr = (new SimpleDateFormat("yyyy-MM-dd")).format(new Date());
     }
 
     @Override
@@ -75,45 +73,7 @@ public class SugarCommentGenerator implements CommentGenerator {
         suppressAllComments = isTrue(properties.getProperty(PropertyRegistry.COMMENT_GENERATOR_SUPPRESS_ALL_COMMENTS));
     }
 
-    /**
-     * This method adds the custom javadoc tag for. You may do nothing if you do
-     * not wish to include the Javadoc tag - however, if you do not include the
-     * Javadoc tag then the Java merge capability of the eclipse plugin will
-     * break.
-     *
-     * @param javaElement the java element
-     */
-    protected void addJavadocTag(JavaElement javaElement, boolean markAsDoNotDelete) {
-        javaElement.addJavaDocLine(" *");
-        StringBuilder sb = new StringBuilder();
-        sb.append(" * ");
-        sb.append(MergeConstants.NEW_ELEMENT_TAG);
-        if (markAsDoNotDelete) {
-            sb.append(" do_not_delete_during_merge");
-        }
-        String s = getDateString();
-        if (s != null) {
-            sb.append(' ');
-            sb.append(s);
-        }
-        javaElement.addJavaDocLine(sb.toString());
-    }
-
-    /**
-     * This method returns a formated date string to include in the Javadoc tag
-     * and XML comments. You may return null if you do not want the date in
-     * these documentation elements.
-     *
-     * @return a string representing the current timestamp, or null
-     */
-    protected String getDateString() {
-        String result = null;
-        if (!suppressDate) {
-            result = currentDateStr;
-        }
-        return result;
-    }
-
+    @Override
     public void addClassComment(InnerClass innerClass, IntrospectedTable introspectedTable) {
         if (suppressAllComments) {
             return;
@@ -122,8 +82,6 @@ public class SugarCommentGenerator implements CommentGenerator {
         innerClass.addJavaDocLine("/**");
         sb.append(" * ");
         sb.append(introspectedTable.getFullyQualifiedTable());
-        sb.append(" ");
-        sb.append(getDateString());
         innerClass.addJavaDocLine(sb.toString().replace("\n", " "));
         innerClass.addJavaDocLine(" */");
     }
@@ -143,6 +101,7 @@ public class SugarCommentGenerator implements CommentGenerator {
 
     /**
      * 字段注释
+     * 针对实体类
      *
      * @param field              字段
      * @param introspectedTable  表信息
@@ -161,14 +120,16 @@ public class SugarCommentGenerator implements CommentGenerator {
         field.addJavaDocLine(" */");
     }
 
+    /**
+     * 实体类名+Example.java    ： 数据查询相关的类
+     * 里面的一些设置，
+     * 会影响字段的注释
+     *
+     * 目前实现是不写任何内容
+     */
     @Override
     public void addFieldComment(Field field, IntrospectedTable introspectedTable) {
-        if (suppressAllComments) {
-            return;
-        }
-        field.addJavaDocLine("/**");
-        field.addJavaDocLine(" * 该方法需要重写");
-        field.addJavaDocLine(" */");
+
     }
 
     @Override
@@ -176,14 +137,20 @@ public class SugarCommentGenerator implements CommentGenerator {
 
     }
 
+    /**
+     * 实体类名+Example.java    ： 数据查询相关的类
+     * 里面的一些设置，
+     * 会影响以下内容
+     * 1.构造方法
+     * 2.setOrderByClause，getOrderByClause
+     * 3.setDistinct，getDistinct
+     * 4.getOredCriteria,  or,  createCriteria,  createCriteriaInternal, clear
+     *
+     * 目前实现是不写任何内容
+     */
     @Override
     public void addGeneralMethodComment(Method method, IntrospectedTable introspectedTable) {
-        if (suppressAllComments) {
-            return;
-        }
-        method.addJavaDocLine("/**");
-        addJavadocTag(method, false);
-        method.addJavaDocLine(" */");
+
     }
 
     @Override
@@ -240,8 +207,6 @@ public class SugarCommentGenerator implements CommentGenerator {
         sb.setLength(0);
         sb.append(" * @author ");
         sb.append(systemPro.getProperty("user.name"));
-        sb.append(" ");
-        sb.append(currentDateStr);
         innerClass.addJavaDocLine(" */");
     }
 }
