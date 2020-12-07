@@ -1,4 +1,4 @@
-package com.maybe.plugin.mybatis;
+package name.xu.plugin;
 
 
 import org.mybatis.generator.api.CommentGenerator;
@@ -27,7 +27,7 @@ import static org.mybatis.generator.internal.util.StringUtility.isTrue;
  *
  * 直接实现接口的自定义生成器
  *
- * @author Created by sugar on 2018/7/3
+ * @author Created by xu on 2018/7/3
  */
 public class SugarCommentGenerator implements CommentGenerator {
     private Properties properties;
