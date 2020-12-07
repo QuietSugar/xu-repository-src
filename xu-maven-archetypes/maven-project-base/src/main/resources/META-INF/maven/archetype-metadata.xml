@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<archetype-descriptor
+        xmlns="http://maven.apache.org/plugins/maven-archetype-plugin/archetype-descriptor/1.0.0"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://maven.apache.org/plugins/maven-archetype-plugin/archetype-descriptor/1.0.0 http://maven.apache.org/xsd/archetype-descriptor-1.0.0.xsd"
+        name="maven-project-base" partial="false">
+
+    <fileSets>
+        <!--packaged 可以自动加上包目录-->
+        <fileSet filtered="true" packaged="true">
+            <directory>src/main/java</directory>
+            <includes>
+                <include>**/*</include>
+            </includes>
+        </fileSet>
+        <fileSet>
+            <directory>src/main/resources</directory>
+        </fileSet>
+        <fileSet filtered="true" packaged="true">
+            <directory>src/test/java</directory>
+        </fileSet>
+        <fileSet>
+            <directory>src/test/resources</directory>
+        </fileSet>
+        <fileSet filtered="true" encoding="UTF-8">
+            <!--根目录-->
+            <directory/>
+            <includes>
+                <include>*</include>
+            </includes>
+        </fileSet>
+    </fileSets>
+</archetype-descriptor>
