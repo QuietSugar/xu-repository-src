@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>实时日志</title>
+</head>
+<body>
+<script type="text/javascript" src="http://cdn.bootcss.com/sockjs-client/1.1.1/sockjs.js"></script>
+<script type="text/javascript" src="https://cdn.bootcss.com/stomp.js/2.3.3/stomp.js"></script>
+<script type="text/javascript" src="js/logPanel.js"></script>
+<script>
+    logPanel.init();
+    logPanel.log('logPanel init');
+    let stompClient = null;
+
+
+    // 获取服务地址
+    function getLocalhostPath() {
+        let curWwwPath = window.document.location.href;
+        //获取主机地址之后的目录，如： /a/b/c/d.html
+        let pathName = window.document.location.pathname;
+        let pos = curWwwPath.indexOf(pathName);
+        //获取主机地址，如： http://localhost:8080
+        return curWwwPath.substring(0, pos);
+    }
+
+
+    //定义全局变量，代表一个 session
+    function connect() {
+        //定义连接函数
+        if (stompClient == null || !stompClient.connected) {
+            let sockJS = new SockJS(getLocalhostPath() + '/websocket/log');
+            stompClient = Stomp.over(sockJS);
+            //若使用STOMP 1.1 版本，默认开启了心跳检测机制（默认值都是10000ms）
+            stompClient.heartbeat.outgoing = 20000;
+            //客户端不从服务端接收心跳包
+            stompClient.heartbeat.incoming = 0;
+            stompClient.connect({}, connectCallback, errorCallback);
+        } else {
+            console.log('connected.');
+        }
+    }
+
+    //连接成功时的回调函数
+    function connectCallback(frame) {
+        console.log('connection successful :\r\n ', JSON.stringify(frame, null, "    "));
+        stompClient.subscribe("/topic/log", function (response) {
+            logPanel.log(response.body)
+        });
+    }
+
+    //连接失败时的回调函数
+    function errorCallback(frame) {
+        console.log('connection unsuccessful : ', frame);
+    }
+
+    //初始化
+    function init() {
+        //建立连接
+        connect();
+    }
+
+    init();
+</script>
+
+</body>
+</html>
