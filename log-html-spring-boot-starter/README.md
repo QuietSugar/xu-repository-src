@@ -16,3 +16,11 @@ mvn install
 </dependency>
 
 ```
+
+配置过滤器
+
+```xml
+ <appender name="stdout" class="ch.qos.logback.core.ConsoleAppender">       
+        <filter class="name.xu.log.html.logback.XuLogFilter"/>
+    </appender>
+```

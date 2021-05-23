@@ -1,1 +1,1 @@
-# ${artifactId}
+# \${artifactId}
