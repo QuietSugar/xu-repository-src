@@ -33,11 +33,6 @@
             <url>file:target/maven-repo/repository/</url>
         </repository>
     </distributionManagement>
-
-    <build>
-        <finalName>mybatis</finalName>
-    </build>
-
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>

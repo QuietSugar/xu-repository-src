@@ -1,20 +1,17 @@
 package name.xu.plugin;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.RandomAccessFile;
-import java.nio.ByteBuffer;
-import java.nio.channels.FileChannel;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
 
 /**
  * 提取项目中的 md 文件
@@ -22,46 +19,121 @@ import java.util.Objects;
  *
  * @author Created by Xu
  */
-@Mojo(name = "md-doc", defaultPhase = LifecyclePhase.PACKAGE)
+@Mojo(name = "md-doc",
+        requiresProject = false,
+        defaultPhase = LifecyclePhase.NONE)
 public class XuMarkdownMojo extends AbstractMojo {
 
     private static final String SUFFIX = ".md";
-    // 排除的目录
+    // 排除的目录 下面列出常见的要跳过的
     private static final List<String> excludeDir = Arrays.asList("target", "log");
 
     @Parameter(defaultValue = "${project}", readonly = true)
     private MavenProject mavenProject;
 
-    private static String projectRootPath;
-    private static String target;
+    // @Parameter(property = "skip", defaultValue = "true", readonly = true)
+    // private boolean skipFilesThatStartWithADot;
+
+    private String outPutRootPath;
+
+    private final List<String> sidebarList = new ArrayList<>();
 
     @Override
     public void execute() {
-        //项目根路径
-        projectRootPath = mavenProject.getBasedir().toString();
-        target = mavenProject.getBuild().getDirectory() + File.separator + "md-doc";
+        // 项目根目录
+        String projectPath = mavenProject.getBasedir().toString() + File.separator;
+        // 输出目录
+        outPutRootPath = mavenProject.getBuild().getDirectory() + File.separator + "md-doc" + File.separator;
+        mkdir(new File(outPutRootPath));
         try {
-            scanMdFile(projectRootPath);
+            // 复制 html 文件
+            copyFileByStream(XuMarkdownMojo.class.getResourceAsStream("/md-doc/index.html"),
+                    new FileOutputStream(outPutRootPath + "index.html"));
+            scanMdFile(projectPath, outPutRootPath, 0);
+            // 写 _sidebar.md 文件
+            BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(
+                    outPutRootPath + "_sidebar.md"
+            ), StandardCharsets.UTF_8));
+
+            for (String arr : sidebarList) {
+                writer.write(arr + "\r\n");
+            }
+            writer.close();
+            writer.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-
     /**
      * 扫描文件
+     *
+     * @param baseSourceRootPath 原始文件根目录 末尾带斜杠
+     * @param baseDescRootPath   目标文件根目录 末尾带斜杠
+     * @param level              目录级别,根目录为 0
      */
-    private void scanMdFile(String filePath) throws IOException {
-        File dir = new File(filePath);
-        for (File file : Objects.requireNonNull(dir.listFiles())) {
-            if (file.isDirectory() && !excludeDir.contains(file.getName())) {
-                scanMdFile(file.getAbsolutePath());
+    private void scanMdFile(String baseSourceRootPath, String baseDescRootPath, int level) throws IOException {
+        File[] allFiles = new File(baseSourceRootPath).listFiles();
+        if (allFiles == null) {
+            return;
+        }
+        List<File> dirs = new ArrayList<>();
+        List<File> files = new ArrayList<>();
+        // 文件/文件夹分类
+        for (File file : allFiles) {
+            if (file.isDirectory()) {
+                // 文件夹
+                //判断是不是排除的文件夹/ 排除 . 开头的 文件夹
+                if (excludeDir.contains(file.getName()) || file.getName().startsWith(".")) {
+                    continue;
+                }
+                dirs.add(file);
             } else {
+                // 文件
                 if (file.getName().endsWith(SUFFIX)) {
-                    // 复制文件
-                    copyFileByFileChannel(file, createNewFile(new File(file.getAbsolutePath().replace(projectRootPath, target))));
+                    files.add(file);
                 }
             }
+        }
+        // 处理文件
+        for (File file : files) {
+            // 复制文件
+            StringBuilder sideLine = new StringBuilder();
+            for (int i = 0; i < level; i++) {
+                sideLine.append("  ");
+            }
+            sideLine.append("- [");
+            // 侧边栏目录名
+            String sidebarName;
+            // 优先取文件的第一行
+            String fileStr = IOUtils.toString(new FileInputStream(file));
+            sidebarName = getFirstLine(fileStr);
+            if (sidebarName == null) {
+                // 使用原始的名字
+                sidebarName = file.getName().replace(SUFFIX, "");
+            }
+            // 侧边栏目录名
+            sideLine.append(sidebarName);
+            sideLine.append("](");
+            sideLine.append((baseDescRootPath + file.getName()).replace(outPutRootPath, ""));
+            sideLine.append(")");
+            sidebarList.add(sideLine.toString());
+
+            IOUtils.copy(new FileInputStream(file),
+                    new FileOutputStream(createNewFile(new File(baseDescRootPath + file.getName()))));
+
+        }
+        // 处理文件夹
+        int nextLevel;
+        if (files.size() == 0) {
+            nextLevel = level;
+        } else {
+            nextLevel = level + 1;
+        }
+        for (File dir : dirs) {
+            scanMdFile(
+                    baseSourceRootPath + dir.getName() + File.separator,
+                    baseDescRootPath + dir.getName() + File.separator, nextLevel);
         }
     }
 
@@ -76,7 +148,17 @@ public class XuMarkdownMojo extends AbstractMojo {
         return file;
     }
 
+    /**
+     * 创建一个文件夹
+     *
+     * @param dir 文件夹
+     */
     private static void mkdir(File dir) {
+        if (dir.exists()) {
+            // 已存在,不用创建
+            return;
+        }
+        // 判断父目录是否存在
         if (!dir.getParentFile().exists()) {
             mkdir(dir.getParentFile());
         }
@@ -85,47 +167,58 @@ public class XuMarkdownMojo extends AbstractMojo {
         }
     }
 
+    /**
+     * 流的方式复制文件
+     *
+     * @param inputStream  输入流
+     * @param outputStream 输出流
+     */
+    static void copyFileByStream(InputStream inputStream, OutputStream outputStream) {
+        //获取源文件的名称
+        try {
+            //创建输出流对象
+            byte[] bytes = new byte[1024 * 8];//创建搬运工具
+            //创建长度
+            int len;
+            //循环读取数据
+            while ((len = inputStream.read(bytes)) != -1) {
+                outputStream.write(bytes, 0, len);
+            }
+            //释放资源
+            inputStream.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
 
     /**
-     * channel方式复制文件
+     * 获取一个字符串的第一行
+     *
+     * @param str 字符串
      */
-    public static void copyFileByFileChannel(File sourceFile, File targetFile) {
-
-        RandomAccessFile randomAccessSourceFile;
-        RandomAccessFile randomAccessTargetFile;
-        try {
-            // 构造RandomAccessFile，用于获取FileChannel
-            randomAccessSourceFile = new RandomAccessFile(sourceFile, "r");
-            randomAccessTargetFile = new RandomAccessFile(targetFile, "rw");
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-            return;
+    static String getFirstLine(String str) {
+        if (str == null) {
+            return null;
         }
-
-        FileChannel sourceFileChannel = randomAccessSourceFile.getChannel();
-        FileChannel targetFileChannel = randomAccessTargetFile.getChannel();
-
-        // 分配1MB的缓存空间
-        ByteBuffer byteBuffer = ByteBuffer.allocate(1024 * 1024);
-        try {
-            while (sourceFileChannel.read(byteBuffer) != -1) {
-                byteBuffer.flip();
-                targetFileChannel.write(byteBuffer);
-                byteBuffer.clear();
+        int index = 0;
+        int rIndex = str.indexOf("\r");
+        int nIndex = str.indexOf("\n");
+        if (rIndex == -1) {
+            if (nIndex == -1) {
+                return null;
+            } else {
+                index = nIndex;
             }
-        } catch (IOException e) {
-            e.printStackTrace();
-        } finally {
-            try {
-                sourceFileChannel.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            try {
-                targetFileChannel.close();
-            } catch (IOException e) {
-                e.printStackTrace();
+        } else {
+            if (nIndex == -1) {
+                index = rIndex;
+            } else {
+                // 取小的
+                index = Math.min(rIndex, nIndex);
             }
         }
+        String substring = str.substring(0, index);
+        return substring.trim().replaceAll("#", "");
     }
 }
