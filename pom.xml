@@ -13,6 +13,7 @@
         <module>log-html-spring-boot-starter</module>
         <module>xu-web-extension</module>
         <module>xu-utils-core</module>
+        <module>xu-spring-boot-starter</module>
     </modules>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
